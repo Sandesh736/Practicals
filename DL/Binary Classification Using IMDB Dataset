@@ -1,0 +1,314 @@
+import numpy as np
+import pandas as pd
+
+#loading imdb data with most frequent 10000 words
+
+from keras.datasets import imdb
+(X_train, y_train), (X_test, y_test) = imdb.load_data(num_words=10000) # you may take top 10,000 word frequently review of movies
+#consolidating data for EDA(exploratory data analysis: involves gathering all the relevant data into one place and preparing it for analysis )
+data = np.concatenate((X_train, X_test), axis=0)
+label = np.concatenate((y_train, y_test), axis=0)
+
+print("Review is ",X_train[5]) # series of no converted word to vocabulory associated with index
+print("Review is ",y_train[5]) # 0 indicating a negative review and 1 indicating a positive review.
+
+vocab=imdb.get_word_index() #The code you provided retrieves the word index for the IMDB dataset
+print(vocab)
+
+data #data is a numpy array that contains all the text data from the IMDB dataset, both the training and testing sets.
+
+label #label is a numpy array that contains all the sentiment labels from the IMDB dataset, both the training and testing sets.0 indicates a negative review and 1 indicates a positive review.
+
+X_train.shape
+
+X_test.shape
+
+y_train
+
+y_test # y_test is 25000, which indicates that it contains 25000 sentiment labels, one for each review in the testing set.
+
+# Function to perform relevant sequence adding on the data
+# Now it is time to prepare our data. We will vectorize every review and fill it with zeros so that it contains exactly 1000 numbers. 
+# That means we fill every review that is shorter than 500 with zeros. 
+# We do this because the biggest review is nearly that long and every input for our neural network needs to have the same size. 
+# We also transform the targets into floats.
+# sequences is name of method the review less than 1000 we perform padding overthere
+
+def vectorize(sequences, dimension = 10000):
+  # Create an all-zero matrix of shape (len(sequences), dimension)
+    results = np.zeros((len(sequences), dimension))
+    for i, sequence in enumerate(sequences):
+        results[i, sequence] = 1
+    return results
+
+# The script transforms your dataset into a binary vector space model.
+# First, if we examine the x_train content we see that each review is represented as a sequence of word ids. Each word id corresponds to one specific word:
+# print(train_data[0])  # print the first review
+# [1, 14, 22, 16, 43, 530, 973, ..., 5345, 19, 178, 32]
+# the size of the entire dictionary, dictionary=10000 in your example. 
+# We will then associate each element/index of this vector with one word/word_id. 
+# So word represented by word id 14 will now be represented by 14-th element of this vector.
+
+
+# Each element will either be 0 (word is not present in the review) or 1 (word is present in the review). 
+# And we can treat this as a probability, so we even have meaning for values in between 0 and 1. 
+# Furthermore, every review will now be represented by this very long (sparse) vector which has a constant length for every review.
+# word      word_id
+# I      -> 0
+# you    -> 1
+# he     -> 2
+# be     -> 3
+# eat    -> 4
+# happy  -> 5
+# sad    -> 6
+# banana -> 7
+# a      -> 8
+
+# the sentences would then be processed in a following way.
+
+
+# I be happy      -> [0,3,5]   -> [1,0,0,1,0,1,0,0,0]
+# I eat a banana. -> [0,4,8,7] -> [1,0,0,0,1,0,0,1,1]
+
+# Now I highlighted the word sparse. 
+# That means, there will have A LOT MORE zeros in comparison with ones. 
+# We can take advantage of that. Instead of checking every word, whether it is contained in a review or not; 
+# we will check a substantially smaller list of only those words that DO appear in our review.
+
+# Therefore, we can make things easy for us and create reviews × vocabulary matrix of zeros right away by np.zeros((len(sequences), dimension))
+# And then just go through words in each review and flip the indicator to 1.0 at position corresponding to that word:
+
+# result[review_id][word_id] = 1.0
+# So instead of doing 25000 x 10000 = 250 000 000 operations, 
+# we only did number of words = 5 967 841. That's just ~2.5% of original amount of operations.
+
+
+# The for loop here is not processing all the matrix. As you can see, it enumerates elements of the sequence, so it's looping only on one dimension. Let's take a simple example :
+# t = np.array([1,2,3,4,5,6,7,8,9])
+# r = np.zeros((len(t), 10))
+
+#Output
+
+# array([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+#   [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+#   [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+#   [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+#  [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+#  [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+#  [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+#  [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+# [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]]) #
+
+# then we modify elements with the same way you have :
+
+# for i, s in enumerate(t):
+#  r[i,s] = 1.
+# array([[0., 1., 0., 0., 0., 0., 0., 0., 0., 0.],
+#   [0., 0., 1., 0., 0., 0., 0., 0., 0., 0.],
+#   [0., 0., 0., 1., 0., 0., 0., 0., 0., 0.],
+#   [0., 0., 0., 0., 1., 0., 0., 0., 0., 0.],
+#   [0., 0., 0., 0., 0., 1., 0., 0., 0., 0.],
+#   [0., 0., 0., 0., 0., 0., 1., 0., 0., 0.],
+#   [0., 0., 0., 0., 0., 0., 0., 1., 0., 0.],
+#   [0., 0., 0., 0., 0., 0., 0., 0., 1., 0.],
+#   [0., 0., 0., 0., 0., 0., 0., 0., 0., 1.]])
+  # you can see that the for loop modified only a set of elements (len(t))
+  # which has index [i,s] (in this case ; (0, 1), (1, 2), (2, 3), an so on))
+
+# Now we split our data into a training and a testing set. 
+# The training set will contain  reviews and the testing set 
+
+test_x = data[:10000]
+test_y = label[:10000]
+train_x = data[10000:]
+train_y = label[10000:]
+
+test_x
+
+test_y
+
+train_x
+
+train_y
+
+print("Categories:", np.unique(label))
+print("Number of unique words:", len(np.unique(np.hstack(data))))
+# The hstack() function is used to stack arrays in sequence horizontally (column wise).
+
+#>>> import numpy as np
+#>>> x = np.array((3,5,7))
+#>>> y = np.array((5,7,9))
+#>>> np.hstack((x,y))
+# array([3, 5, 7, 5, 7, 9])
+
+
+# You can see in the output above that the dataset is labeled into two categories, either 0 or 1, 
+# which represents the sentiment of the review. 
+
+# The whole dataset contains 9998 unique words and the average review length is 234 words, with a standard deviation of 173 words.
+
+length = [len(i) for i in data]
+print("Average Review length:", np.mean(length))
+print("Standard Deviation:", round(np.std(length)))
+
+# The whole dataset contains 9998 unique words and the average review length is 234 words, with a standard deviation of 173 words.
+
+# If you look at the data you will realize it has been already pre-processed.
+# All words have been mapped to integers and the integers represent the words sorted by their frequency.
+# This is very common in text analysis to represent a dataset like this. 
+# So 4 represents the 4th most used word, 
+# 5 the 5th most used word and so on... 
+# The integer 1 is reserved for the start marker,
+# the integer 2 for an unknown word and 0 for padding.
+
+# Let's look at a single training example:
+
+print("Label:", label[0])
+
+print(data[0])
+
+# Let's decode the first review
+# Above you see the first review of the dataset which is labeled as positive (1).
+# The code below retrieves the dictionary mapping word indices back into the original words so that we can read them. 
+# It replaces every unknown word with a “#”. It does this by using the get_word_index() function.
+
+
+# Retrieves a dict mapping words to their index in the IMDB dataset.
+index = imdb.get_word_index()
+# If there is a possibility of multiple keys with the same value, you will need to specify the desired behaviour in this case to lookup more than 2 values
+# ivd = dict((v, k) for k, v in d.items())
+# If you want to peek at the reviews yourself and see what people have actually written, you can reverse the process too:
+reverse_index = dict([(value, key) for (key, value) in index.items()]) 
+decoded = " ".join( [reverse_index.get(i - 3, "#") for i in data[0]] ) #The purpose of subtracting 3 from i is to adjust the indice,# to indicate that the index was not found.
+print(decoded)
+
+index
+
+reverse_index
+
+decoded
+
+#Adding sequence to data
+# Vectorization is the process of converting textual data into numerical vectors and is a process that is usually applied once the text is cleaned.
+data = vectorize(data)
+label = np.array(label).astype("float32")
+
+# Now it is time to prepare our data. We will vectorize every review and fill it with zeros so that it contains exactly 1000 numbers. 
+# That means we fill every review that is shorter than 1000 with zeros. 
+# We do this because the biggest review is nearly that long and every input for our neural network needs to have the same size. 
+# We also transform the targets into floats.
+
+data
+
+label
+
+# Commented out IPython magic to ensure Python compatibility.
+# Let's check distribution of data
+
+# To create plots for EDA(exploratory data analysis) 
+import seaborn as sns #seaborn is a popular Python visualization library that is built on top of Matplotlib and provides a high-level interface for creating informative and attractive statistical graphics.
+sns.set(color_codes=True)
+import matplotlib.pyplot as plt # %matplotlib to display Matplotlib plots inline with the notebook
+# %matplotlib inline
+
+labelDF=pd.DataFrame({'label':label})
+sns.countplot(x='label', data=labelDF)
+
+# For below analysis it is clear that data has equel distribution of sentiments.This will help us building a good model.
+
+# Creating train and test data set
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(data,label, test_size=0.20, random_state=1)
+
+X_train.shape
+
+X_test.shape
+
+# Let's create sequential model,In deep learning, a Sequential model is a linear stack of layers, where you can simply add layers one after the other
+
+from keras.utils import to_categorical
+from keras import models
+from keras import layers
+
+model = models.Sequential()
+# Input - Layer
+# Note that we set the input-shape to 10,000 at the input-layer because our reviews are 10,000 integers long.
+# The input-layer takes 10,000 as input and outputs it with a shape of 50.
+model.add(layers.Dense(50, activation = "relu", input_shape=(10000, )))
+# Hidden - Layers
+# Please note you should always use a dropout rate between 20% and 50%. # here in our case 0.3 means 30% dropout we are using dropout to prevent overfitting. 
+# By the way, if you want you can build a sentiment analysis without LSTMs(Long Short-Term Memory networks), then you simply need to replace it by a flatten layer:
+model.add(layers.Dropout(0.3, noise_shape=None, seed=None))
+model.add(layers.Dense(50, activation = "relu")) #ReLU" stands for Rectified Linear Unit, and it is a commonly used activation function in neural networks. 
+model.add(layers.Dropout(0.2, noise_shape=None, seed=None))
+model.add(layers.Dense(50, activation = "relu"))
+# Output- Layer
+model.add(layers.Dense(1, activation = "sigmoid")) #adds another Dense layer to the model, but with a single neuron instead of 50,i.e. out put layer,it produces the output predictions of the model.
+model.summary()
+
+#For early stopping 
+# Stop training when a monitored metric has stopped improving.
+# monitor: Quantity to be monitored.
+# patience: Number of epochs with no improvement after which training will be stopped.
+import tensorflow as tf #TensorFlow provides a wide range of tools and features for data processing, model building, model training, and model evaluation.
+callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=3)
+
+# We use the “adam” optimizer, an algorithm that changes the weights and biases during training.
+# During training, the weights and biases of a machine learning model are updated iteratively to minimize the difference between the model's predictions and the actual outputs.
+# We also choose binary-crossentropy as loss (because we deal with binary classification) and accuracy as our evaluation metric.
+
+model.compile(
+ optimizer = "adam",
+ loss = "binary_crossentropy",
+ metrics = ["accuracy"]
+)
+
+# Now we're able to train our model. We'll do this with a batch_size of 500 and only for two epochs because I recognized that the model overfits if we train it longer.
+# batch size defines the number of samples that will be propagated through the network.
+# For instance, let's say you have 1050 training samples and you want to set up a batch_size equal to 100. 
+# The algorithm takes the first 100 samples (from 1st to 100th) from the training dataset and trains the network. 
+# Next, it takes the second 100 samples (from 101st to 200th) and trains the network again. 
+# We can keep doing this procedure until we have propagated all samples through of the network. 
+# Problem might happen with the last set of samples. In our example, we've used 1050 which is not divisible by 100 without remainder.
+# The simplest solution is just to get the final 50 samples and train the network.
+##The goal is to find the number of epochs that results in good performance on a validation dataset without overfitting to the training data.
+results = model.fit(
+ X_train, y_train,
+ epochs= 2,
+ batch_size = 500,
+ validation_data = (X_test, y_test),
+ callbacks=[callback]
+)
+
+# Let's check mean accuracy of our model
+print(np.mean(results.history["val_accuracy"])) # Good model should have a mean accuracy significantly higher than 50%
+
+#Let's plot training history of our model
+
+# list all data in history
+print(results.history.keys())
+# summarize history for accuracy
+plt.plot(results.history['accuracy']) #Plots the training accuracy of the model at each epoch.
+plt.plot(results.history['val_accuracy']) #Plots the validation accuracy of the model at each epoch.
+plt.title('model accuracy')
+plt.ylabel('accuracy')
+plt.xlabel('epoch')
+plt.legend(['train', 'test'], loc='upper left')
+plt.show()
+# summarize history for loss
+plt.plot(results.history['loss'])
+plt.plot(results.history['val_loss'])
+plt.title('model loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train', 'test'], loc='upper left')
+plt.show()
+
+model.predict(X_test)
+
+#Out put analysis,
+#[0.9865479] is a single prediction value for a particular input sample in the test data. 
+#It is the predicted probability of the positive sentiment class (class 1) for that input.
+#Since the output activation function of the last layer of the model is sigmoid, which maps the predicted values to a range of [0,1]
+#,the output values represent the probabilities of the positive class. 
+#In this case, the probability of the positive class for the given input sample is 0.9865479, which is very close to 1, indicating that the model is highly confident in predicting the positive class for that input.
