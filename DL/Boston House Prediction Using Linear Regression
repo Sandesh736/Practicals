@@ -1,0 +1,133 @@
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_boston
+boston = load_boston()
+data = pd.DataFrame(boston.data)
+data.head()
+data.columns = boston.feature_names
+
+data.head(n=10) 
+print(data.shape)
+data.isnull().sum()
+data.describe()
+data.info()
+
+import seaborn as sns
+sns.distplot(data.PRICE)
+correlation = data.corr()
+correlation.loc['PRICE']
+
+import matplotlib.pyplot as plt
+fig,axes = plt.subplots(figsize=(15,12))
+sns.heatmap(correlation,square = True,annot = True)
+
+plt.figure(figsize = (20,5))
+features = ['LSTAT','RM','PTRATIO']
+for i, col in enumerate(features):ArithmeticError
+plt.subplot(1, len(features) , i+1)
+x = data[col]
+y = data.PRICE
+plt.scatter(x, y, marker='o')
+plt.title("Variation in House prices")
+plt.xlabel(col)
+plt.ylabel('"House prices in $1000"')
+
+X = data.iloc[:,:-1]
+y= data.PRICE
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+mean = X_train.mean(axis=0)
+std = X_train.std(axis=0)
+X_train = (X_train - mean) / std
+X_test = (X_test - mean) / std
+
+
+from sklearn.linear_model import LinearRegression
+regressor = LinearRegression()
+
+regressor.fit(X_train,y_train)
+y_pred = regressor.predict(X_test)
+
+from sklearn.metrics import mean_squared_error
+rmse = (np.sqrt(mean_squared_error(y_test, y_pred)))
+print(rmse)
+from sklearn.metrics import r2_score
+r2 = r2_score(y_test, y_pred)
+print(r2)
+
+from sklearn.preprocessing import StandardScaler
+sc = StandardScaler()
+X_train = sc.fit_transform(X_train)
+X_test = sc.transform(X_test)
+
+import keras
+from keras.layers import Dense, Activation,Dropout
+from keras.models import Sequential
+model = Sequential()
+model.add(Dense(128,activation = 'relu',input_dim =13))
+model.add(Dense(64,activation = 'relu'))
+model.add(Dense(32,activation = 'relu'))
+model.add(Dense(16,activation = 'relu'))
+model.add(Dense(1))
+
+model.compile(optimizer = 'adam',loss ='mean_squared_error',metrics=['mae'])
+!pip install ann_visualizer
+!pip install graphviz
+from ann_visualizer.visualize import ann_viz;
+
+ann_viz(model, title="DEMO ANN");
+history = model.fit(X_train, y_train, epochs=100, validation_split=0.05)
+
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
+fig = go.Figure()
+fig.add_trace(go.Scattergl(y=history.history['loss'],
+name='Train'))
+fig.add_trace(go.Scattergl(y=history.history['val_loss'],
+name='Valid'))
+fig.update_layout(height=500, width=700,
+xaxis_title='Epoch',
+yaxis_title='Loss')
+fig.show()
+
+fig = go.Figure()
+fig.add_trace(go.Scattergl(y=history.history['mae'],
+name='Train'))
+fig.add_trace(go.Scattergl(y=history.history['val_mae'],
+name='Valid'))
+fig.update_layout(height=500, width=700,
+xaxis_title='Epoch',
+yaxis_title='Mean Absolute Error')
+fig.show()
+
+y_pred =model.predict(X_test)
+mse_nn, mae_nn = model.evaluate(X_test, y_test)
+print('Mean squared error on test data: ', mse_nn)
+print('Mean absolute error on test data: ', mae_nn)
+
+from sklearn.metrics import mean_absolute_error
+lr_model = LinearRegression()
+lr_model.fit(X_train,
+y_train)
+y_pred_lr = lr_model.predict(X_test)
+mse_lr = mean_squared_error(y_test, y_pred_lr)
+mae_lr = mean_absolute_error(y_test, y_pred_lr)
+print('Mean squared error on test data: ', mse_lr)
+print('Mean absolute error on test data: ', mae_lr)
+
+from sklearn.metrics import r2_score
+r2 = r2_score(y_test, y_pred)
+print(r2)
+
+from sklearn.metrics import mean_squared_error
+rmse = (np.sqrt(mean_squared_error(y_test, y_pred)))
+print(rmse)
+
+
+import sklearn
+new_data = sklearn.preprocessing.StandardScaler().fit_transform(([[0.1, 10.0,
+5.0, 0, 0.4, 6.0, 50, 6.0, 1, 400, 20, 300, 10]]))
+prediction = model.predict(new_data)
+print("Predicted house price:",
+prediction)
